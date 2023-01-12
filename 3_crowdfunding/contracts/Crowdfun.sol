@@ -2,6 +2,9 @@
 pragma solidity ^0.8.9;
 
 contract CrowdFunding {
+
+    uint public immutable deadline;
+
     address public owner;
 
     enum CampaignStatus {
@@ -25,32 +28,32 @@ contract CrowdFunding {
     }
 
     function isCampaignOpen(CampaignStatus _status)
-        internal
-        view
+        private
+        pure
         returns (bool)
     {
         return _status == CampaignStatus.Open;
     }
 
     function isCampaignClose(CampaignStatus _status)
-        internal
-        view
+        private
+        pure
         returns (bool)
     {
         return _status == CampaignStatus.Close;
     }
 
     function isCampaignSuccessful(CampaignStatus _status)
-        internal
-        view
+        private
+        pure
         returns (bool)
     {
         return _status == CampaignStatus.Successful;
     }
 
     function isCampaignUnsuccessful(CampaignStatus _status)
-        internal
-        view
+        private
+        pure
         returns (bool)
     {
         return _status == CampaignStatus.Unsuccessful;
@@ -66,7 +69,10 @@ contract CrowdFunding {
      * constructor - Initializes the contract and sets the msg.sender as the owner of the contract.
      */
     constructor() {
+        // set the owner of the contract
         owner = msg.sender;
+        // all campaigns will have the same deadline
+        deadline = 30 days;
     }
 
     // modifier to restrict access to the function
@@ -104,9 +110,8 @@ contract CrowdFunding {
         string memory _title,
         string memory _description,
         uint256 _target,
-        uint256 _deadline,
         string memory _image
-    ) public returns (uint256) {
+    ) public onlyOwner returns (uint256) {
         Campaign storage campaign = campaigns[numberOfCampaigns];
 
         require(
@@ -123,7 +128,7 @@ contract CrowdFunding {
         campaign.title = _title;
         campaign.description = _description;
         campaign.target = _target;
-        campaign.deadline = _deadline;
+        campaign.deadline = deadline;
         campaign.amountCollected = 0;
         campaign.image = _image;
         campaign.status = CampaignStatus.Open;
