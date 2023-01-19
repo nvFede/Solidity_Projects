@@ -13,11 +13,11 @@ Properties:
 <ul><li>`eventOwner`: The address of the contract owner.</li><li><code>status</code>: The status of the event. Can be one of <code>PRESALE</code>, <code>FORSALE</code>, <code>SOLDOUT</code>, or <code>CLOSE</code>.</li><li><code>customers</code>: A mapping of addresses to customer data, including their email and the number of tickets they have purchased.</li><li><code>numberOfTicketsForTheEvent</code>: The total number of tickets available for the event.</li><li><code>maxTicketsPerClient</code>: The maximum number of tickets a customer can purchase.</li><li><code>ticketPrice</code>: The price of a single ticket.</li><li><code>presalePrice</code>: The price of a ticket during the presale period.</li><li><code>eventName</code>: The name of the event.</li><li><code>firstFive</code>: The number of tickets available during the presale period.</li><li><code>locked</code>: Whether the event is locked and no longer accepting purchases.</li></ul></li><li><p>Events:</p><ul><li><code>TicketPurchased</code>: Emitted when a customer successfully purchases tickets.</li><li><code>BalanceWithdrawn</code>: Emitted when the contract owner withdraws the contract balance.</li><li><code>EventCreated</code>: Emitted when a new event is created.</li><li><code>EventClosed</code>: Emitted when the event is closed and no longer accepting purchases.</li><li><code>OwnerChanged</code>: Emitted when the contract owner is changed.</li></ul></li><li><p>Functions:</p><ul><li><code>buyTickets</code>: Allows customers to purchase tickets for the event. They must provide their email, the number of tickets they want to purchase, and send the correct amount of ether to the contract. The function will check that the customer is not the owner, that they have not already purchased the maximum allowed number of tickets, and that there are enough tickets available before completing the purchase.</li><li><code>withdrawBalance</code>: Allows the contract owner to withdraw the balance of the contract.</li><li><code>lock</code>: Allows the contract owner to lock the event and prevent any further purchases.</li><li><code>changeOwner</code>: Allows the contract owner to transfer ownership of the contract to another address.</li></ul></li></ul>
 
 <h1>How to use</h1><ol><li>
-To create a new event, use the `createNewEvent` function in the <code>EventFactory</code> contract by providing the event name, number of tickets, and ticket price.
+To create a new event, use the `createNewEvent` function in the <code>EventFactory</code> contract by providing the event name, number of tickets, and ticket price.</li></ol>
 
 
 
-## Test Cases
+<h2>Test Cases</h2>
 
 EventFactory
 
