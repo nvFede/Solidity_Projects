@@ -1,5 +1,5 @@
 
-**Assistant:**
+
 <h1>Event Management Contract</h1>
 This smart contract allows for the creation, management, and purchase of event tickets on the Ethereum blockchain. The contract is made up of two main parts: the `EventFactory` and the <code>Event</code> contract.
 <h2>EventFactory</h2>
