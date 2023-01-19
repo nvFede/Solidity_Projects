@@ -2,8 +2,7 @@
 pragma solidity ^0.8.9;
 
 contract CrowdFunding {
-
-    uint public immutable deadline;
+    uint256 public immutable deadline;
 
     address public owner;
 
@@ -101,7 +100,6 @@ contract CrowdFunding {
      * @param _title the title of the campaign.
      * @param _description a brief description of the campaign.
      * @param _target the funding target for the campaign.
-     * @param _deadline the deadline for the campaign to reach its funding target.
      * @param _image the image url for the campaign.
      * @return the ID of the newly created campaign.
      */
@@ -111,7 +109,7 @@ contract CrowdFunding {
         string memory _description,
         uint256 _target,
         string memory _image
-    ) public onlyOwner returns (uint256) {
+    ) public returns (uint256) {
         Campaign storage campaign = campaigns[numberOfCampaigns];
 
         require(
@@ -128,7 +126,7 @@ contract CrowdFunding {
         campaign.title = _title;
         campaign.description = _description;
         campaign.target = _target;
-        campaign.deadline = deadline;
+        campaign.deadline = block.timestamp + deadline;
         campaign.amountCollected = 0;
         campaign.image = _image;
         campaign.status = CampaignStatus.Open;
@@ -148,6 +146,8 @@ contract CrowdFunding {
 
         Campaign storage campaign = campaigns[_id];
 
+        require(campaign.status != CampaignStatus.Close, "This campaign is not open to fund.");
+
         require(
             campaign.deadline > block.timestamp &&
                 isCampaignOpen(campaign.status),
@@ -156,7 +156,7 @@ contract CrowdFunding {
 
         require(
             campaign.amountCollected + amount <= campaign.target,
-            "The campaign has reached its goal."
+            "Donation exceeds campaign target."
         );
 
         campaign.donators.push(payable(msg.sender));
@@ -197,7 +197,7 @@ contract CrowdFunding {
             isCampaignClose(campaign.status),
             " The campaign is already open."
         );
-        campaign.status = CampaignStatus.Close;
+        campaign.status = CampaignStatus.Open;
     }
 
     // function to check the status of all campaigns in the contract
@@ -256,7 +256,7 @@ contract CrowdFunding {
     function withdrawFunds(uint256 _id) public noReentrancy {
         require(
             msg.sender == campaigns[_id].owner,
-            "Only the owner of the Campaign can perform this action."
+            "Only the owner of the Campaign can withdraw the funds."
         );
 
         Campaign storage campaign = campaigns[_id];
@@ -265,17 +265,13 @@ contract CrowdFunding {
             isCampaignSuccessful(campaign.status),
             "The campaign has not reached the target, you can't withdraw the funds"
         );
-
-        require(
-            campaign.status == CampaignStatus.Close,
-            "Campaign is not closed"
-        );
+ 
         require(campaign.owner != address(0), "Owner not set");
 
         payable(campaign.owner).transfer(campaign.amountCollected);
     }
 
-    function refund(uint256 _id) internal noReentrancy onlyOwner {
+    function refund(uint256 _id) private noReentrancy onlyOwner {
         Campaign storage campaign = campaigns[_id];
         require(
             isCampaignUnsuccessful(campaign.status),
