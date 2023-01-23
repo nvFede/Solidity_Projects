@@ -26,41 +26,33 @@ contract CrowdFunding {
         CampaignStatus status;
     }
 
-    function isCampaignOpen(CampaignStatus _status)
-        private
-        pure
-        returns (bool)
-    {
+    function isCampaignOpen(
+        CampaignStatus _status
+    ) private pure returns (bool) {
         return _status == CampaignStatus.Open;
     }
 
-    function isCampaignClose(CampaignStatus _status)
-        private
-        pure
-        returns (bool)
-    {
+    function isCampaignClose(
+        CampaignStatus _status
+    ) private pure returns (bool) {
         return _status == CampaignStatus.Close;
     }
 
-    function isCampaignSuccessful(CampaignStatus _status)
-        private
-        pure
-        returns (bool)
-    {
+    function isCampaignSuccessful(
+        CampaignStatus _status
+    ) private pure returns (bool) {
         return _status == CampaignStatus.Successful;
     }
 
-    function isCampaignUnsuccessful(CampaignStatus _status)
-        private
-        pure
-        returns (bool)
-    {
+    function isCampaignUnsuccessful(
+        CampaignStatus _status
+    ) private pure returns (bool) {
         return _status == CampaignStatus.Unsuccessful;
     }
 
     mapping(uint256 => Campaign) public campaigns;
 
-    bool internal locked;
+    bool internal locked = false;
 
     uint256 public numberOfCampaigns = 0;
 
@@ -80,6 +72,11 @@ contract CrowdFunding {
         _;
     }
 
+    modifier notOwner() {
+        require(owner != msg.sender, "The owner can't perform this action.");
+        _;
+    }
+
     // modifier to protected access for re-entrancy attacks
     modifier noReentrancy() {
         require(!locked, "No re-entrancy");
@@ -93,23 +90,12 @@ contract CrowdFunding {
 
     //event CampaignFunded(Campaign   campaign, uint256 amount);
 
-    /**
-     * createCampaign - Allows the owner of the contract to create a new campaign.
-     *
-     * @param _owner the address of the owner of the campaign.
-     * @param _title the title of the campaign.
-     * @param _description a brief description of the campaign.
-     * @param _target the funding target for the campaign.
-     * @param _image the image url for the campaign.
-     * @return the ID of the newly created campaign.
-     */
     function createCampaign(
-        address _owner,
         string memory _title,
         string memory _description,
         uint256 _target,
         string memory _image
-    ) public returns (uint256) {
+    ) public notOwner {
         Campaign storage campaign = campaigns[numberOfCampaigns];
 
         require(
@@ -122,7 +108,7 @@ contract CrowdFunding {
             "The deadline should be a date in the future."
         );
 
-        campaign.owner = _owner;
+        campaign.owner = msg.sender;
         campaign.title = _title;
         campaign.description = _description;
         campaign.target = _target;
@@ -132,8 +118,6 @@ contract CrowdFunding {
         campaign.status = CampaignStatus.Open;
 
         numberOfCampaigns++;
-
-        return numberOfCampaigns - 1;
     }
 
     /**
@@ -146,7 +130,10 @@ contract CrowdFunding {
 
         Campaign storage campaign = campaigns[_id];
 
-        require(campaign.status != CampaignStatus.Close, "This campaign is not open to fund.");
+        require(
+            campaign.status != CampaignStatus.Close,
+            "This campaign is not open to fund."
+        );
 
         require(
             campaign.deadline > block.timestamp &&
@@ -159,19 +146,21 @@ contract CrowdFunding {
             "Donation exceeds campaign target."
         );
 
+        require(
+            msg.sender != campaign.owner,
+            "you can't donate to your own campaign"
+        );
+
+        campaign.amountCollected += amount;
         campaign.donators.push(payable(msg.sender));
         campaign.donations.push(amount);
-
-        (bool sent, ) = payable(campaign.owner).call{value: amount}("");
-
-        if (sent) {
-            campaign.amountCollected = campaign.amountCollected + amount;
-        }
 
         if (campaign.amountCollected == campaign.target) {
             campaign.status = CampaignStatus.Successful;
             emit CampaginSuccessfullyFunded(campaign);
         }
+
+        
     }
 
     /**
@@ -223,11 +212,9 @@ contract CrowdFunding {
      * @param _id the ID of the campaign to retrieve donators and donations for.
      * @return an array of addresses of the donators, and an array of the respective donations.
      */
-    function getDonators(uint256 _id)
-        public
-        view
-        returns (address payable[] memory, uint256[] memory)
-    {
+    function getDonators(
+        uint256 _id
+    ) public view returns (address payable[] memory, uint256[] memory) {
         return (campaigns[_id].donators, campaigns[_id].donations);
     }
 
@@ -249,11 +236,12 @@ contract CrowdFunding {
     }
 
     /**
-     * withdrawFunds - Allows the owner of a campaign to withdraw the funds that have been collected for that campaign.
+     * withdrawFunds - Allows the owner of a campaign to withdraw the
+     * funds that have been collected for that campaign.
      *
      * @param _id the ID of the campaign to withdraw funds for.
      */
-    function withdrawFunds(uint256 _id) public noReentrancy {
+    function withdrawFunds(uint256 _id) public {
         require(
             msg.sender == campaigns[_id].owner,
             "Only the owner of the Campaign can withdraw the funds."
@@ -265,12 +253,20 @@ contract CrowdFunding {
             isCampaignSuccessful(campaign.status),
             "The campaign has not reached the target, you can't withdraw the funds"
         );
- 
-        require(campaign.owner != address(0), "Owner not set");
 
         payable(campaign.owner).transfer(campaign.amountCollected);
+        campaign.amountCollected = 0;
     }
 
+    /**
+     * function that allows the owner of the contract to refund the donations
+     * made to a specific campaign if it is unsuccessful
+     *
+     * @param _id the id of the campaign
+     * @dev only the owner of the contract can use this function
+     * @dev this function can only be called once and will not allow reentrancy
+     * @dev requires that the campaign status is unsuccessful before refunding
+     */
     function refund(uint256 _id) private noReentrancy onlyOwner {
         Campaign storage campaign = campaigns[_id];
         require(
@@ -281,4 +277,10 @@ contract CrowdFunding {
             campaign.donators[i].transfer(campaign.donations[i]);
         }
     }
+
+    function contractBalance() public view onlyOwner returns (uint) {
+        return address(this).balance;
+    }
+
+   
 }
