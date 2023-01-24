@@ -4,6 +4,12 @@ pragma solidity ^0.8.0;
 contract ExamFactory {
     address[] public deployedExams;
 
+    address public owner;
+
+    constructor() {
+        owner = msg.sender;
+    }
+
     mapping(address => bool) public authorizedCreators;
 
     modifier onlyAuthorized() {
@@ -23,6 +29,34 @@ contract ExamFactory {
         );
         address newExam = address(new Exam(questions));
         deployedExams.push(newExam);
+    }
+
+    modifier validAddress(address _addr) {
+        require(_addr != address(0), "Not valid address");
+        _;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "only the owner can perform this action.");
+        _;
+    }
+
+    function addAuthorizedCreator(
+        address _creator
+    ) public validAddress(_creator) onlyOwner {
+        authorizedCreators[_creator] = true;
+    }
+
+    function removeAuthorizedCreator(
+        address _creator
+    ) public validAddress(_creator) onlyOwner {
+        authorizedCreators[_creator] = false;
+    }
+
+    function changeOwner(
+        address _newOwner
+    ) public onlyOwner validAddress(_newOwner) {
+        owner = _newOwner;
     }
 }
 
